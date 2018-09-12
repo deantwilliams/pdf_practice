@@ -16,7 +16,7 @@ app.use(methodOverride('_method'));
 app.set('view engine', 'ejs');
 
 // Mongo URI
-const mongoURI = 'mongodb://brad:brad@ds257838.mlab.com:57838/mongouploads';
+const mongoURI = 'mongodb://test:password1@ds151282.mlab.com:51282/pdf-db';
 
 // Create mongo connection
 const conn = mongoose.createConnection(mongoURI);
@@ -39,9 +39,8 @@ const storage = new GridFsStorage({
         if (err) {
           return reject(err);
         }
-        const filename = buf.toString('hex') + path.extname(file.originalname);
         const fileInfo = {
-          filename: filename,
+          filename: file.originalname,
           bucketName: 'uploads'
         };
         resolve(fileInfo);
@@ -99,16 +98,19 @@ app.get('/files', (req, res) => {
 
 // @route GET /files/:filename
 // @desc  Display single file object
-app.get('/files/:filename', (req, res) => {
-  gfs.files.findOne({ filename: req.params.filename }, (err, file) => {
-    // Check if file
-    if (!file || file.length === 0) {
-      return res.status(404).json({
-        err: 'No file exists'
-      });
-    }
-    // File exists
-    return res.json(file);
+app.get('/files/:id', (req, res) => {
+  var fileID = req.params.id;
+  gfs.files.findOne({ _id: mongoose.Types.ObjectId(fileID) }, (err, file) => {
+    if(!file || file.length === 0){
+          return res.status(404).json({
+              message: "Could not find file"
+          });
+      }
+      var readstream = gfs.createReadStream({
+        _id: file._id
+      })
+      res.set('Content-Type', file.contentType);
+      return readstream.pipe(res);
   });
 });
 
